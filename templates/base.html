@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RBSK Student Uploader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ── DESIGN TOKENS ── */
+    :root {
+      --saffron:   #FF6B00;
+      --saffron-lt:#FFF0E5;
+      --green:     #138808;
+      --green-lt:  #E8F5E9;
+      --blue:      #1A4A8A;
+      --blue-lt:   #E8EFF9;
+      --navy:      #0D2B5C;
+      --white:     #FFFFFF;
+      --off-white: #F9F9F6;
+      --gray-1:    #F2F2EF;
+      --gray-2:    #D6D6D0;
+      --gray-3:    #8C8C82;
+      --text:      #1A1A1A;
+      --radius:    10px;
+      --shadow:    0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hind', sans-serif;
+      background: var(--off-white);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      color: var(--white);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 64px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .topbar-emblem {
+      width: 44px; height: 44px;
+      background: var(--white);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .topbar-title { font-family: 'Baloo 2', sans-serif; font-size: 18px; font-weight: 700; line-height: 1.2; }
+    .topbar-sub   { font-size: 12px; opacity: 0.75; }
+
+    /* ── PROGRESS STEPS ── */
+    .steps-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-2);
+      padding: 16px 32px;
+      display: flex;
+      gap: 0;
+      align-items: center;
+    }
+    .step {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--gray-3); font-weight: 500;
+    }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--gray-1); border: 2px solid var(--gray-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--gray-3);
+      flex-shrink: 0;
+    }
+    .step.active .step-num  { background: var(--saffron); border-color: var(--saffron); color: #fff; }
+    .step.active            { color: var(--saffron); }
+    .step.done .step-num    { background: var(--green); border-color: var(--green); color: #fff; }
+    .step.done              { color: var(--green); }
+    .step-divider           { flex: 1; height: 2px; background: var(--gray-2); margin: 0 12px; min-width: 20px; }
+    .step.done + .step-divider { background: var(--green); }
+
+    /* ── MAIN CONTENT ── */
+    .container {
+      max-width: 780px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 32px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-family: 'Baloo 2', sans-serif;
+      font-size: 20px; font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .card-sub {
+      color: var(--gray-3); font-size: 14px; margin-bottom: 22px;
+    }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block; font-weight: 600; font-size: 14px;
+      color: var(--navy); margin-bottom: 6px;
+    }
+    label .hint { font-weight: 400; color: var(--gray-3); font-size: 12px; margin-left: 6px; }
+
+    input[type="text"], input[type="password"], input[type="number"], select {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 7px; font-size: 15px;
+      font-family: 'Hind', sans-serif;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: var(--blue); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 26px; border: none; border-radius: 8px;
+      font-family: 'Baloo 2', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.18s; text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--saffron); color: var(--white);
+    }
+    .btn-primary:hover { background: #e06000; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,107,0,0.3); }
+
+    .btn-success {
+      background: var(--green); color: var(--white);
+    }
+    .btn-success:hover { background: #0e6a06; }
+
+    .btn-outline {
+      background: transparent; color: var(--blue);
+      border: 1.5px solid var(--blue);
+    }
+    .btn-outline:hover { background: var(--blue-lt); }
+
+    .btn-sm { padding: 7px 16px; font-size: 13px; }
+
+    /* ── ALERTS ── */
+    .alert {
+      padding: 12px 16px; border-radius: 8px;
+      font-size: 14px; margin-bottom: 16px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .alert-error   { background: #FFF0F0; border: 1px solid #FFB3B3; color: #8B0000; }
+    .alert-success { background: var(--green-lt); border: 1px solid #A5D6A7; color: #1B5E20; }
+    .alert-info    { background: var(--blue-lt); border: 1px solid #90CAF9; color: var(--navy); }
+    .alert-warn    { background: #FFF8E1; border: 1px solid #FFE082; color: #6D4C00; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th {
+      background: var(--navy); color: var(--white);
+      padding: 9px 12px; text-align: left; font-weight: 600;
+    }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--gray-1); }
+    tr:hover td { background: var(--off-white); }
+    tr.problem td { background: #FFF5F5; }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-block; padding: 2px 9px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+    .badge-ok   { background: var(--green-lt); color: var(--green); }
+    .badge-fail { background: #FFE5E5; color: #C62828; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 24px;
+      color: var(--gray-3); font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP NAVIGATION BAR -->
+<div class="topbar">
+  <div class="topbar-emblem">🏥</div>
+  <div>
+    <div class="topbar-title">RBSK Student Uploader</div>
+    <div class="topbar-sub">Rashtriya Bal Swasthya Karyakram — Nashik</div>
+  </div>
+</div>
+
+<!-- PROGRESS STEPS -->
+<div class="steps-bar">
+  <div class="step {% if step >= 1 %}{% if step == 1 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 1 %}✓{% else %}1{% endif %}</div>
+    <span>Setup</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step >= 2 %}{% if step == 2 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 2 %}✓{% else %}2{% endif %}</div>
+    <span>Upload CSV</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step >= 3 %}{% if step == 3 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 3 %}✓{% else %}3{% endif %}</div>
+    <span>Review & Clean</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step >= 4 %}{% if step == 4 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 4 %}✓{% else %}4{% endif %}</div>
+    <span>Confirm</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step == 5 %}active{% endif %}">
+    <div class="step-num">5</div>
+    <span>Results</span>
+  </div>
+</div>
+
+<!-- PAGE CONTENT -->
+<div class="container">
+  {% block content %}{% endblock %}
+</div>
+
+<footer>
+  RBSK Uploader &nbsp;·&nbsp; For internal use only &nbsp;·&nbsp; Nashik Health Block
+</footer>
+
+</body>
+</html>

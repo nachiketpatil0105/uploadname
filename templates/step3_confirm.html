@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set step = 4 %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-title">Step 3 — Confirm Upload</div>
+  <div class="card-sub">You are about to add <strong>{{ total }} student(s)</strong> to the RBSK portal.</div>
+
+  {% if error %}
+  <div class="alert alert-error">
+    <span>❌</span> <div>{{ error }}</div>
+  </div>
+  {% endif %}
+
+  <div class="alert alert-warn">
+    <span>⚠️</span>
+    <div>
+      <strong>Once you click "Add All Students", the upload will begin.</strong><br>
+      This cannot be undone. Make sure you have selected the correct institution.
+    </div>
+  </div>
+
+  <!-- FINAL STUDENT LIST -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Gender</th>
+          <th>Date of Birth</th>
+          <th>Mobile</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td style="color: var(--gray-3); font-size:12px;">{{ loop.index }}</td>
+          <td><strong>{{ s.name }}</strong></td>
+          <td><span class="badge badge-ok">{{ s.gender }}</span></td>
+          <td>{{ s.dob }}</td>
+          <td>{{ s.mobile }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+    <form method="POST" action="/run" id="upload-form">
+      <button type="submit" class="btn btn-success" id="upload-btn">
+        🚀 Add All {{ total }} Students to Portal
+      </button>
+    </form>
+    <a href="/upload" class="btn btn-outline">← Start Over</a>
+  </div>
+</div>
+
+<script>
+  document.getElementById("upload-form").addEventListener("submit", function() {
+    const btn = document.getElementById("upload-btn");
+    btn.textContent = "⏳ Uploading... Please wait, do not close this tab.";
+    btn.disabled = true;
+    btn.style.opacity = "0.7";
+    btn.style.cursor  = "not-allowed";
+  });
+</script>
+
+{% endblock %}

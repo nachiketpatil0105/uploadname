@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set step = 2 %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-title">Step 2 — Upload Student CSV</div>
+  <div class="card-sub">Upload a CSV file containing the student list.</div>
+
+  <!-- REQUIRED COLUMNS INFO -->
+  <div class="alert alert-info" style="margin-bottom: 20px;">
+    <span>📋</span>
+    <div>
+      <strong>Your CSV must have these exact column names (in any order):</strong><br>
+      <code style="font-size:13px; color: #1A4A8A;">
+        name, father, mother, gender, dob, address, pincode, mobile
+      </code>
+      <br><br>
+      <strong>Example row:</strong><br>
+      <code style="font-size:12px;">
+        Ravi Kumar, Suresh Kumar, Sunita Kumar, M, 2010-05-15, Village XYZ Nashik, 422001, 9876543210
+      </code>
+      <br><br>
+      📌 Gender must be <strong>M</strong> or <strong>F</strong><br>
+      📌 Date of Birth must be <strong>YYYY-MM-DD</strong> format (e.g. 2010-05-15)
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  {% if error %}
+  <div class="alert alert-error">
+    <span>❌</span> <div>{{ error }}</div>
+  </div>
+  {% endif %}
+
+  <!-- UPLOAD FORM -->
+  <form method="POST" action="/upload" enctype="multipart/form-data">
+    <div class="form-group">
+      <label>Choose CSV File</label>
+      <input type="file" name="csv_file" accept=".csv"
+             style="padding:8px; border: 1.5px solid var(--gray-2); border-radius: 7px; width:100%; font-family: inherit;"
+             required />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      📂 Upload &amp; Preview →
+    </button>
+  </form>
+</div>
+
+{% endblock %}

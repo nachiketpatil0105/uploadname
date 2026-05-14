@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% set step = 3 %}
+
+{% block content %}
+
+<!-- SUMMARY BANNER -->
+{% if ready %}
+<div class="alert alert-success">
+  <span>✅</span>
+  <div>
+    <strong>All {{ total_clean }} students are clean and ready to upload!</strong><br>
+    No problems were found. You can safely proceed.
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warn">
+  <span>⚠️</span>
+  <div>
+    <strong>{{ total_problems }} student(s) have problems</strong> and will be skipped.<br>
+    {{ total_clean }} out of {{ total_raw }} students are clean and will be uploaded.
+    Please fix the problems in your CSV and re-upload if needed.
+  </div>
+</div>
+{% endif %}
+
+<!-- PROBLEMS TABLE -->
+{% if problems %}
+<div class="card">
+  <div class="card-title" style="color: #C62828;">⚠️ Students With Problems ({{ total_problems }})</div>
+  <div class="card-sub">These students will NOT be uploaded. Fix the errors in your CSV file.</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>CSV Row</th>
+          <th>Student Name</th>
+          <th>Problems Found</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in problems %}
+        <tr class="problem">
+          <td>{{ p.row }}</td>
+          <td>{{ p.name }}</td>
+          <td>
+            {% for err in p.errors %}
+              <div style="margin-bottom:3px;">❌ {{ err }}</div>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- CLEAN STUDENTS TABLE -->
+{% if cleaned %}
+<div class="card">
+  <div class="card-title" style="color: var(--green);">✅ Clean Students Ready to Upload ({{ total_clean }})</div>
+  <div class="card-sub">These students will be uploaded to the RBSK portal.</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Father</th>
+          <th>Mother</th>
+          <th>Gender</th>
+          <th>Date of Birth</th>
+          <th>Mobile</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in cleaned %}
+        <tr>
+          <td style="color: var(--gray-3); font-size:12px;">{{ loop.index }}</td>
+          <td><strong>{{ s.name }}</strong></td>
+          <td>{{ s.father }}</td>
+          <td>{{ s.mother }}</td>
+          <td><span class="badge badge-ok">{{ s.gender }}</span></td>
+          <td>{{ s.dob }}</td>
+          <td>{{ s.mobile }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PROCEED BUTTON — only show if there are clean students -->
+  <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+    <form method="POST" action="/confirm-clean">
+      <button type="submit" class="btn btn-success">
+        ✅ Proceed to Upload {{ total_clean }} Student(s) →
+      </button>
+    </form>
+    <a href="/upload" class="btn btn-outline">← Re-upload Fixed CSV</a>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="alert alert-error">
+    <span>❌</span>
+    <div>No clean students found. Please fix all errors in your CSV and re-upload.</div>
+  </div>
+  <a href="/upload" class="btn btn-outline">← Upload Fixed CSV</a>
+</div>
+{% endif %}
+
+{% endblock %}

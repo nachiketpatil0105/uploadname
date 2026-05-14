@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% set step = 1 %}
+
+{% block content %}
+
+<!-- HOW TO GET YOUR TOKEN — info box -->
+<div class="alert alert-info">
+  <span>ℹ️</span>
+  <div>
+    <strong>How to get your Access Token, Health Block ID, and Login ID:</strong><br>
+    Log in to the RBSK portal → press <strong>F12</strong> → go to <strong>Network</strong> tab →
+    click <strong>Fetch/XHR</strong> → find <strong>AuthenticateUser</strong> →
+    open the <strong>Response</strong> tab. You'll find all three values there.
+    Also copy the <strong>accessToken</strong> from the Request cookies.
+  </div>
+</div>
+
+<!-- ERROR LIST -->
+{% if errors %}
+<div class="alert alert-error">
+  <span>❌</span>
+  <div>
+    <strong>Please fix the following:</strong>
+    <ul style="margin-top:6px; padding-left:18px;">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<!-- FORM CARD -->
+<form method="POST" action="/start">
+  <div class="card">
+    <div class="card-title">Step 1 — Connect to Portal</div>
+    <div class="card-sub">Enter your login details from the browser's Network tab.</div>
+
+    <!-- Access Token -->
+    <div class="form-group">
+      <label>
+        Access Token
+        <span class="hint">— from the 'accessToken' cookie after login</span>
+      </label>
+      <input type="password" name="token" placeholder="Paste your access token here"
+             value="{{ form.token if form else '' }}" required />
+    </div>
+
+    <!-- Login ID -->
+    <div class="form-group">
+      <label>
+        Login ID
+        <span class="hint">— 'loginID' field in the AuthenticateUser response</span>
+      </label>
+      <input type="number" name="login_id" placeholder="e.g. 11111111"
+             value="{{ form.login_id if form else '' }}" required />
+    </div>
+
+    <!-- Health Block ID -->
+    <div class="form-group">
+      <label>
+        Health Block ID
+        <span class="hint">— fixed for this block</span>
+      </label>
+      <input type="number" name="health_block_code"
+             value="{{ health_block_code }}" readonly
+             style="background:#f0f0f0; cursor:not-allowed; color:#555;" />
+    </div>
+  </div>
+
+  <!-- INSTITUTION SELECTION CARD -->
+  <div class="card">
+    <div class="card-title">Select Institution</div>
+    <div class="card-sub">Choose whether you are uploading for an AWC or a School, then select the name.</div>
+
+    <!-- Institution Type -->
+    <div class="form-group">
+      <label>Institution Type</label>
+      <select name="institution_type" id="inst_type" onchange="updateInstitutions()">
+        <option value="1" {% if form and form.institution_type == '1' %}selected{% endif %}>AWC (Anganwadi Centre)</option>
+        <option value="2" {% if form and form.institution_type == '2' %}selected{% endif %}>School</option>
+      </select>
+    </div>
+
+    <!-- Institution Name (dynamic dropdown) -->
+    <div class="form-group">
+      <label>Institution Name</label>
+      <select name="institution_code" id="inst_code">
+        <option value="">-- Loading... --</option>
+      </select>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">
+    ✅ Connect &amp; Proceed to Upload →
+  </button>
+</form>
+
+<script>
+  // AWC list from server
+  const awcList    = {{ awc_list    | tojson }};
+  const schoolList = {{ school_list | tojson }};
+  const savedCode  = "{{ form.institution_code if form else '' }}";
+
+  function updateInstitutions() {
+    const type = document.getElementById("inst_type").value;
+    const list = type === "2" ? schoolList : awcList;
+    const select = document.getElementById("inst_code");
+
+    select.innerHTML = "";
+    list.forEach(item => {
+      const opt = document.createElement("option");
+      opt.value = item.code;
+      opt.textContent = item.name;
+      if (String(item.code) === savedCode) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  // Populate on page load
+  updateInstitutions();
+</script>
+
+{% endblock %}
