@@ -77,7 +77,8 @@ def set_results(job_id: str, successful: list, failed: list):
 
 
 def set_config(job_id: str, token: str, health_block_code: int,
-               login_id: int, institution_type: int, institution_code: int):
+               login_id: int, institution_type: int, institution_code: int,
+               team_id: str, suffix: str):
     """
     Store the portal credentials and institution settings in the job.
     This avoids putting them in the Flask cookie, which has a 4KB limit
@@ -91,6 +92,8 @@ def set_config(job_id: str, token: str, health_block_code: int,
                 "login_id":          login_id,
                 "institution_type":  institution_type,
                 "institution_code":  institution_code,
+                "team_id":           team_id,
+                "suffix":            suffix,
             }
 
 

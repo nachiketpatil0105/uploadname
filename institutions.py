@@ -5,7 +5,7 @@ Used to populate the dropdown menus on the website.
 """
 
 import csv
-from config import AWC_CSV_PATH, SCHOOL_CSV_PATH
+from config import AWC_CSV_PATH_K, SCHOOL_CSV_PATH_K, AWC_CSV_PATH_D, SCHOOL_CSV_PATH_D
 
 
 def load_institutions(csv_path: str) -> list[dict]:
@@ -27,9 +27,11 @@ def load_institutions(csv_path: str) -> list[dict]:
     return institutions
 
 
-def get_awc_list() -> list[dict]:
-    return load_institutions(AWC_CSV_PATH)
+def get_awc_list(suffix: str) -> list[dict]:
+    path = AWC_CSV_PATH_K if suffix == "k" else AWC_CSV_PATH_D
+    return load_institutions(path)
 
 
-def get_school_list() -> list[dict]:
-    return load_institutions(SCHOOL_CSV_PATH)
+def get_school_list(suffix: str) -> list[dict]:
+    path = SCHOOL_CSV_PATH_K if suffix == "k" else SCHOOL_CSV_PATH_D
+    return load_institutions(path)

@@ -5,6 +5,25 @@ If any of these values change (e.g. the domain, state, district),
 update them here and nowhere else.
 """
 
+import hashlib
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # reads the .env file
+
+TEAM_CONFIG = {
+    "MHT-12703kk": {
+        "login_id_hash":     hashlib.sha256(os.getenv("KK_LOGIN_ID", "").encode()).hexdigest(),
+        "health_block_code": 148,
+        "suffix":            "k",
+    },
+    "MHT-12703dd": {
+        "login_id_hash":     hashlib.sha256(os.getenv("DD_LOGIN_ID", "").encode()).hexdigest(),
+        "health_block_code": 148,
+        "suffix":            "d",
+    },
+}
+
 # ---------------------------------------------------------------------------
 # Portal domain
 # ---------------------------------------------------------------------------
@@ -32,8 +51,12 @@ INSTITUTION_TYPE_SCHOOL = 2   # School
 # ---------------------------------------------------------------------------
 # Paths to institution list CSV files
 # ---------------------------------------------------------------------------
-AWC_CSV_PATH    = "data/awc.csv"
-SCHOOL_CSV_PATH = "data/school.csv"
+AWC_CSV_PATH_K   = "data/awc_k.csv"
+SCHOOL_CSV_PATH_K = "data/school_k.csv"
+
+AWC_CSV_PATH_D   = "data/awc_d.csv"
+SCHOOL_CSV_PATH_D = "data/school_d.csv"
+
 
 # ---------------------------------------------------------------------------
 # Upload behaviour
