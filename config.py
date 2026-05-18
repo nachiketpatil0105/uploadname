@@ -12,12 +12,12 @@ from dotenv import load_dotenv
 load_dotenv()  # reads the .env file
 
 TEAM_CONFIG = {
-    "MHT-12703kk": {
+    "MHT-1270379": {
         "login_id_hash":     hashlib.sha256(os.getenv("KK_LOGIN_ID", "").encode()).hexdigest(),
         "health_block_code": 148,
         "suffix":            "k",
     },
-    "MHT-12703dd": {
+    "MHT-1270371": {
         "login_id_hash":     hashlib.sha256(os.getenv("DD_LOGIN_ID", "").encode()).hexdigest(),
         "health_block_code": 148,
         "suffix":            "d",
