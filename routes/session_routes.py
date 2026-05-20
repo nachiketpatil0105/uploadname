@@ -139,34 +139,11 @@ def api_institutions():
 @session_bp.route("/new-upload")
 def new_upload():
     """
-    Start a new CSV upload without re-entering credentials.
-    Copies the config (token, team, institution) to a fresh job,
-    then redirects to the CSV upload page.
+    Clear the current job and session completely,
+    then redirect to the home page for fresh login.
     """
     old_job_id = session.get("job_id")
-    old_config = {}
-
-    # Grab config from old job before deleting it
     if old_job_id:
-        old_job = job_store.get_job(old_job_id)
-        if old_job:
-            old_config = old_job.get("config") or {}
         job_store.delete_job(old_job_id)
-
-    # Create a fresh job and carry the config forward
-    new_job_id = job_store.new_job()
-    if old_config:
-        job_store.set_config(
-            new_job_id,
-            token             = old_config["token"],
-            health_block_code = old_config["health_block_code"],
-            login_id          = old_config["login_id"],
-            institution_type  = old_config["institution_type"],
-            institution_code  = old_config["institution_code"],
-            team_id           = old_config["team_id"],
-            suffix            = old_config["suffix"],
-            institution_name  = old_config.get("institution_name", ""),
-        )
-    session["job_id"] = new_job_id
-
-    return redirect(url_for("csv_bp.upload_csv"))
+    session.clear()
+    return redirect(url_for("session_bp.index"))

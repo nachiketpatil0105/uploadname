@@ -110,6 +110,13 @@
           <option value="">-- verify team first --</option>
         </select>
         <div id="inst_count" style="font-size:11px; color:var(--text-faint); margin-top:4px;"></div>
+        <!-- Shows the currently selected institution clearly -->
+        <div id="inst_selected"
+             style="display:none; margin-top:8px; padding:8px 12px;
+                    background:var(--green-bg); border:1px solid var(--green-border);
+                    border-radius:var(--radius); font-size:13px; font-weight:600;
+                    color:var(--green);">
+        </div>
       </div>
     </div>
 
@@ -145,6 +152,7 @@
       select.innerHTML = "<option value=''>-- no results --</option>";
       count.textContent = "0 results";
       document.getElementById("hidden_inst_name").value = "";
+      showSelected("");
       return;
     }
 
@@ -158,12 +166,25 @@
     select.selectedIndex = 0;
     document.getElementById("hidden_inst_name").value = filtered[0].name;
     count.textContent = filtered.length + " result" + (filtered.length > 1 ? "s" : "");
+    showSelected(filtered[0].name);
   }
 
   function onInstitutionSelect() {
     const select = document.getElementById("inst_code");
     const opt    = select.options[select.selectedIndex];
-    document.getElementById("hidden_inst_name").value = opt ? opt.textContent : "";
+    const name   = opt ? opt.textContent : "";
+    document.getElementById("hidden_inst_name").value = name;
+    showSelected(name);
+  }
+
+  function showSelected(name) {
+    const box = document.getElementById("inst_selected");
+    if (name && name !== "-- no results --") {
+      box.textContent   = "✓ selected: " + name;
+      box.style.display = "block";
+    } else {
+      box.style.display = "none";
+    }
   }
 
   async function verifyTeam() {
