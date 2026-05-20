@@ -60,12 +60,13 @@ def start():
     NOTE: team_id and login_id arrive as hidden fields — they were already
     verified by /verify-team before the form was shown to the user.
     """
-    team_id          = request.form.get("team_id", "").strip()
-    token            = request.form.get("token", "").strip()
-    login_id         = request.form.get("login_id", "").strip()
-    institution_type = request.form.get("institution_type", "").strip()
-    institution_code = request.form.get("institution_code", "").strip()
-    hb_code          = HEALTH_BLOCK_CODE   # fixed — not taken from form
+    team_id           = request.form.get("team_id", "").strip()
+    token             = request.form.get("token", "").strip()
+    login_id          = request.form.get("login_id", "").strip()
+    institution_type  = request.form.get("institution_type", "").strip()
+    institution_code  = request.form.get("institution_code", "").strip()
+    institution_name  = request.form.get("institution_name", "").strip()
+    hb_code           = HEALTH_BLOCK_CODE   # fixed — not taken from form
 
     # Basic validation
     errors = []
@@ -76,9 +77,6 @@ def start():
         errors.append("Invalid Team ID. Please go back and verify again.")
 
     if errors:
-        # Re-render the page showing only the verify section again
-        # (we can't repopulate the dropdowns without knowing which team,
-        #  so we send the user back to re-verify — this path is very rare)
         return render_template("step1_setup.html",
                                health_block_code=hb_code,
                                errors=errors)
@@ -111,6 +109,7 @@ def start():
         institution_code  = inst_code,
         team_id           = team_id,
         suffix            = suffix,
+        institution_name  = institution_name,
     )
 
     return redirect(url_for("csv_bp.upload_csv"))
@@ -134,7 +133,7 @@ def api_institutions():
     else:
         data = get_awc_list(suffix)
 
-    return jsonify(data)   # FIX: was missing this return statement
+    return jsonify(data)
 
 
 @session_bp.route("/new-upload")
@@ -155,7 +154,6 @@ def new_upload():
         job_store.delete_job(old_job_id)
 
     # Create a fresh job and carry the config forward
-    # so the user doesn't have to re-verify or re-enter the token
     new_job_id = job_store.new_job()
     if old_config:
         job_store.set_config(
@@ -167,6 +165,7 @@ def new_upload():
             institution_code  = old_config["institution_code"],
             team_id           = old_config["team_id"],
             suffix            = old_config["suffix"],
+            institution_name  = old_config.get("institution_name", ""),
         )
     session["job_id"] = new_job_id
 

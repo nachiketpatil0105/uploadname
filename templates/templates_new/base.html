@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>R### Student Uploader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ── TERMINAL DESIGN TOKENS ── */
+    :root {
+      --bg:          #0d0d0d;
+      --bg-card:     #141414;
+      --bg-card2:    #1a1a1a;
+      --border:      #2a2a2a;
+      --border-hi:   #3a3a3a;
+
+      --green:       #00e676;
+      --green-dim:   #00c853;
+      --green-bg:    rgba(0, 230, 118, 0.06);
+      --green-border:rgba(0, 230, 118, 0.2);
+
+      --amber:       #ffb300;
+      --amber-dim:   #ff8f00;
+      --amber-bg:    rgba(255, 179, 0, 0.06);
+      --amber-border:rgba(255, 179, 0, 0.2);
+
+      --red:         #ff5252;
+      --red-bg:      rgba(255, 82, 82, 0.06);
+      --red-border:  rgba(255, 82, 82, 0.2);
+
+      --cyan:        #00e5ff;
+      --cyan-dim:    #00b8d4;
+      --cyan-bg:     rgba(0, 229, 255, 0.06);
+      --cyan-border: rgba(0, 229, 255, 0.2);
+
+      --text:        #e0e0e0;
+      --text-dim:    #888;
+      --text-faint:  #555;
+
+      --radius:      6px;
+      --font:        'JetBrains Mono', 'IBM Plex Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      height: 48px;
+      gap: 12px;
+    }
+
+    /* macOS-style traffic lights */
+    .traffic-lights {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .tl { width: 12px; height: 12px; border-radius: 50%; }
+    .tl-red    { background: #ff5f57; }
+    .tl-yellow { background: #ffbd2e; }
+    .tl-green  { background: #28c840; }
+
+    .topbar-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .topbar-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .topbar-path {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .status-dot::before {
+      content: '';
+      display: block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    /* ── STEP BAR ── */
+    .steps-bar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      height: 40px;
+      overflow-x: auto;
+      gap: 0;
+      scrollbar-width: none;
+    }
+    .steps-bar::-webkit-scrollbar { display: none; }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      color: var(--text-faint);
+      white-space: nowrap;
+      padding: 0 2px;
+    }
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+      border: 1px solid var(--border-hi);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-faint);
+      flex-shrink: 0;
+    }
+    .step.active .step-num {
+      background: var(--amber);
+      border-color: var(--amber);
+      color: #000;
+    }
+    .step.active { color: var(--amber); }
+
+    .step.done .step-num {
+      background: var(--green);
+      border-color: var(--green);
+      color: #000;
+    }
+    .step.done { color: var(--green); }
+
+    .step-divider {
+      height: 1px;
+      width: 28px;
+      background: var(--border);
+      margin: 0 8px;
+      flex-shrink: 0;
+    }
+    .step.done + .step-divider { background: var(--green-dim); }
+
+    @media (max-width: 520px) {
+      .step span    { display: none; }
+      .step-divider { width: 16px; margin: 0 4px; }
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 14px;
+    }
+
+    .card-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .card-title-prefix {
+      color: var(--green);
+      font-weight: 400;
+      margin-right: 4px;
+    }
+    .card-sub {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::before {
+      content: '//';
+      color: var(--green);
+      font-weight: 400;
+    }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group { margin-bottom: 16px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+    label .hint {
+      font-weight: 400;
+      color: var(--text-faint);
+      font-size: 10px;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-left: 4px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -webkit-appearance: none;
+    }
+    input::placeholder { color: var(--text-faint); }
+    input:focus, select:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 2px rgba(255,179,0,0.12);
+    }
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23555' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+    }
+
+    /* Multiselect list box */
+    select[size] {
+      background-image: none;
+      padding-right: 12px;
+      height: auto;
+      min-height: 100px;
+    }
+    select[size] option {
+      padding: 5px 8px;
+      border-radius: 3px;
+    }
+    select[size] option:checked {
+      background: rgba(255,179,0,0.15);
+      color: var(--amber);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 20px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--amber);
+      color: #000;
+      border-color: var(--amber);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--amber-dim);
+      border-color: var(--amber-dim);
+      box-shadow: 0 0 12px rgba(255,179,0,0.25);
+    }
+
+    .btn-success {
+      background: var(--green);
+      color: #000;
+      border-color: var(--green);
+    }
+    .btn-success:hover:not(:disabled) {
+      background: var(--green-dim);
+      border-color: var(--green-dim);
+      box-shadow: 0 0 12px rgba(0,230,118,0.25);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-dim);
+      border-color: var(--border-hi);
+    }
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--text-dim);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border-color: var(--red-border);
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: var(--red-bg);
+    }
+
+    .btn-sm { padding: 6px 13px; font-size: 11px; }
+
+    /* ── ALERTS ── */
+    .alert {
+      padding: 11px 14px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border: 1px solid;
+    }
+    .alert-icon { flex-shrink: 0; font-style: normal; }
+
+    .alert-error   {
+      background: var(--red-bg);
+      border-color: var(--red-border);
+      color: var(--red);
+    }
+    .alert-success {
+      background: var(--green-bg);
+      border-color: var(--green-border);
+      color: var(--green);
+    }
+    .alert-info {
+      background: var(--cyan-bg);
+      border-color: var(--cyan-border);
+      color: var(--cyan);
+    }
+    .alert-warn {
+      background: var(--amber-bg);
+      border-color: var(--amber-border);
+      color: var(--amber);
+    }
+
+    .alert strong { font-weight: 700; }
+    .alert a { color: inherit; }
+    .alert code {
+      background: rgba(255,255,255,0.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .alert ol, .alert ul {
+      padding-left: 18px;
+      margin-top: 6px;
+      line-height: 2;
+    }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead tr {
+      border-bottom: 1px solid var(--border-hi);
+    }
+    th {
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    tbody tr:hover td { background: var(--bg-card2); }
+    tr.problem td { background: rgba(255,82,82,0.03); }
+
+    /* row index */
+    td.row-idx { color: var(--text-faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .badge-ok   {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-border);
+    }
+    .badge-fail {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red-border);
+    }
+
+    /* ── PROMPT LINE ── */
+    .prompt-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+    .prompt-line .ps { color: var(--green); }
+    .prompt-line .cmd { color: var(--text); }
+
+    /* ── INFO ROW ── */
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-dim);
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .key {
+      color: var(--cyan);
+      min-width: 120px;
+      flex-shrink: 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 10px;
+      color: var(--text-faint);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .topbar { padding: 0 12px; }
+      .steps-bar { padding: 0 12px; }
+      .container { padding: 14px 10px 32px; }
+      .card { padding: 16px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="traffic-lights">
+    <div class="tl tl-red"></div>
+    <div class="tl tl-yellow"></div>
+    <div class="tl tl-green"></div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-icon">🏥</div>
+  <div>
+    <div class="topbar-title">rbsk-uploader</div>
+    <div class="topbar-path">~/student-data/upload</div>
+  </div>
+  <div class="topbar-right">
+    <span class="status-dot">connected</span>
+  </div>
+</div>
+
+<!-- PROGRESS STEPS -->
+<div class="steps-bar">
+  <div class="step {% if step >= 1 %}{% if step == 1 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 1 %}✓{% else %}1{% endif %}</div>
+    <span>setup</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step >= 2 %}{% if step == 2 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 2 %}✓{% else %}2{% endif %}</div>
+    <span>upload_csv</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step >= 3 %}{% if step == 3 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 3 %}✓{% else %}3{% endif %}</div>
+    <span>review</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step >= 4 %}{% if step == 4 %}active{% else %}done{% endif %}{% endif %}">
+    <div class="step-num">{% if step > 4 %}✓{% else %}4{% endif %}</div>
+    <span>confirm</span>
+  </div>
+  <div class="step-divider"></div>
+
+  <div class="step {% if step == 5 %}active{% endif %}">
+    <div class="step-num">5</div>
+    <span>results</span>
+  </div>
+</div>
+
+<!-- PAGE CONTENT -->
+<div class="container">
+  {% block content %}{% endblock %}
+</div>
+
+<footer>
+  // personal use only — rbsk portal assistant — no external data sharing
+</footer>
+
+</body>
+</html>

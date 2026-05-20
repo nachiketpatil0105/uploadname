@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% set step = 3 %}
+
+{% block content %}
+
+<!-- SUMMARY BANNER -->
+{% if ready %}
+<div class="alert alert-success">
+  <i class="alert-icon">✓</i>
+  <div>
+    <strong>all {{ total_clean }} students are clean and ready to upload</strong><br>
+    no problems found — safe to proceed
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warn">
+  <i class="alert-icon">⚠</i>
+  <div>
+    <strong>{{ total_problems }} student(s) have problems</strong> — will be skipped<br>
+    {{ total_clean }} of {{ total_raw }} students are clean and will be uploaded
+    {% if total_problems > 0 %}
+    <br>
+    <a href="/download-problems" class="btn btn-outline btn-sm" style="margin-top:8px;">
+      ↓ download problem rows as CSV
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+
+<!-- PROBLEMS TABLE -->
+{% if problems %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title" style="color:var(--red);">
+        <span class="card-title-prefix" style="color:var(--red);">✗</span> problems ({{ total_problems }})
+      </div>
+      <div class="card-sub">these students will NOT be uploaded — fix errors in your CSV</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>csv_row</th>
+          <th>student_name</th>
+          <th>problems_found</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in problems %}
+        <tr class="problem">
+          <td class="row-idx">{{ p.row }}</td>
+          <td>{{ p.name }}</td>
+          <td>
+            {% for err in p.errors %}
+              <div style="margin-bottom:2px; color:var(--red);">✗ {{ err }}</div>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- SINGLE FORM wrapping weight inputs + proceed button -->
+<form method="POST" action="/confirm-clean" id="confirm-form">
+
+  {% if needs_weight %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title" style="color:var(--amber);">
+          <span class="card-title-prefix" style="color:var(--amber);">⚖</span> weight_required ({{ needs_weight|length }})
+        </div>
+        <div class="card-sub">children under 1 year — enter birth weight in grams</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>name</th><th>father</th><th>mother</th>
+            <th>gender</th><th>dob</th><th>address</th>
+            <th>pincode</th><th>mobile</th><th>weight_g *</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in needs_weight %}
+          <tr>
+            <td class="row-idx">{{ loop.index }}</td>
+            <td><strong>{{ s.name }}</strong></td>
+            <td>{{ s.father }}</td>
+            <td>{{ s.mother }}</td>
+            <td><span class="badge badge-ok">{{ s.gender }}</span></td>
+            <td>{{ s.dob }}</td>
+            <td>{{ s.address }}</td>
+            <td>{{ s.pincode }}</td>
+            <td>{{ s.mobile }}</td>
+            <td>
+              <input type="number" name="weight_{{ loop.index0 }}"
+                     placeholder="e.g. 2800" min="500" max="6000"
+                     style="width:110px; padding:6px 8px;" required />
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+
+  <!-- CLEAN STUDENTS TABLE -->
+  {% if cleaned or needs_weight %}
+  <div class="card">
+    {% if cleaned %}
+    <div class="card-header">
+      <div>
+        <div class="card-title" style="color:var(--green);">
+          <span class="card-title-prefix" style="color:var(--green);">✓</span> clean_students ({{ total_clean }})
+        </div>
+        <div class="card-sub">these students will be uploaded to R### portal</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>name</th><th>father</th><th>mother</th>
+            <th>gender</th><th>dob</th><th>address</th>
+            <th>pincode</th><th>mobile</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in cleaned %}
+          <tr>
+            <td class="row-idx">{{ loop.index }}</td>
+            <td><strong>{{ s.name }}</strong></td>
+            <td>{{ s.father }}</td>
+            <td>{{ s.mother }}</td>
+            <td><span class="badge badge-ok">{{ s.gender }}</span></td>
+            <td>{{ s.dob }}</td>
+            <td>{{ s.address }}</td>
+            <td>{{ s.pincode }}</td>
+            <td>{{ s.mobile }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      {% set total_to_upload = total_clean + needs_weight|length %}
+      <button type="submit" class="btn btn-success" id="proceed-btn">
+        <span>✓</span> proceed — upload {{ total_to_upload }} student(s)
+        {% if needs_weight|length > 0 %}
+          ({{ total_clean }} clean + {{ needs_weight|length }} with weight)
+        {% endif %} →
+      </button>
+      <a href="/upload" class="btn btn-outline">← re-upload fixed CSV</a>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="card">
+    <div class="alert alert-error">
+      <i class="alert-icon">✗</i>
+      <div>no clean students found — fix all errors and re-upload</div>
+    </div>
+    <a href="/upload" class="btn btn-outline">← upload fixed CSV</a>
+  </div>
+  {% endif %}
+
+</form>
+
+<script>
+  document.getElementById("confirm-form").addEventListener("submit", function() {
+    const btn = document.getElementById("proceed-btn");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = "<span>⟳</span> saving...";
+    }
+  });
+</script>
+
+{% endblock %}

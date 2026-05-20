@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% set step = 2 %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title"><span class="card-title-prefix">02.</span> preview_data</div>
+      <div class="card-sub">{{ total }} students found — raw preview, no changes applied yet</div>
+    </div>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom:16px;">
+    <i class="alert-icon">ℹ</i>
+    <div>This is a <strong>raw preview</strong> — no changes made yet.
+    Click <strong>check &amp; clean</strong> to validate and fix problems.</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          {% for h in headers %}<th>{{ h }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="row-idx">{{ loop.index }}</td>
+          {% for h in headers %}
+          <td>{{ row[h] }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+    <form method="POST" action="/clean" id="clean-form">
+      <button type="submit" class="btn btn-primary" id="clean-btn">
+        <span>▶</span> check &amp; clean →
+      </button>
+    </form>
+    <a href="/upload" class="btn btn-outline">← upload different file</a>
+  </div>
+</div>
+
+<script>
+  document.getElementById("clean-form").addEventListener("submit", function() {
+    const btn    = document.getElementById("clean-btn");
+    btn.disabled = true;
+    btn.innerHTML = "<span>⟳</span> checking...";
+  });
+</script>
+
+{% endblock %}

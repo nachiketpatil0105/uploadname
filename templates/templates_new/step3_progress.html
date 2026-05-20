@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% set step = 4 %}
+
+{% block content %}
+
+<div class="card" style="text-align:center; padding: 40px 24px;">
+
+  <!-- Animated terminal spinner -->
+  <div id="spinner" style="font-size:32px; margin-bottom:14px; font-family:var(--font);">⟳</div>
+
+  <div class="card-title" style="font-size:16px; text-transform:none; letter-spacing:0; margin-bottom:6px;">
+    uploading_students<span id="cursor" style="color:var(--amber); animation: blink-cursor 1s step-end infinite;">_</span>
+  </div>
+  <div style="font-size:11px; color:var(--text-faint); margin-bottom:28px;">
+    keep this tab open — do not refresh or go back
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div style="background:var(--border); border-radius:3px; height:4px; overflow:hidden; margin-bottom:10px; position:relative;">
+    <div id="progress-bar"
+         style="height:100%; width:0%; background: linear-gradient(90deg, var(--amber), var(--green));
+                border-radius:3px; transition: width 0.5s ease; position:relative;">
+      <!-- glow effect -->
+      <div style="position:absolute; right:0; top:-3px; width:8px; height:10px;
+                  background:var(--green); filter:blur(4px); opacity:0.8;"></div>
+    </div>
+  </div>
+
+  <!-- PERCENTAGE -->
+  <div id="pct-text" style="font-size:11px; color:var(--text-faint); margin-bottom:18px; font-variant-numeric: tabular-nums;">
+    0%
+  </div>
+
+  <!-- COUNTER TEXT -->
+  <div id="progress-text" style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:6px;">
+    connecting to portal...
+  </div>
+  <div id="progress-sub" style="font-size:11px; color:var(--text-dim);">
+    each student ~{{ delay }}s — eta: <span id="eta" style="color:var(--amber);">calculating...</span>
+  </div>
+
+  <!-- TALLY -->
+  <div id="tally" style="display:none; margin-top:24px; gap:16px; justify-content:center; flex-wrap:wrap;">
+    <div style="background:var(--green-bg); border:1px solid var(--green-border); border-radius:var(--radius); padding:10px 28px; min-width:100px;">
+      <div style="font-size:24px; font-weight:700; color:var(--green); font-variant-numeric: tabular-nums;" id="tally-ok">0</div>
+      <div style="font-size:10px; color:var(--green); letter-spacing:0.1em; text-transform:uppercase; margin-top:2px;">added</div>
+    </div>
+    <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--radius); padding:10px 28px; min-width:100px;">
+      <div style="font-size:24px; font-weight:700; color:var(--red); font-variant-numeric: tabular-nums;" id="tally-fail">0</div>
+      <div style="font-size:10px; color:var(--red); letter-spacing:0.1em; text-transform:uppercase; margin-top:2px;">failed</div>
+    </div>
+  </div>
+
+  <!-- LOG OUTPUT -->
+  <div id="log-wrap" style="display:none; margin-top:24px; text-align:left;">
+    <div class="section-label" style="text-align:left;">output</div>
+    <div id="log"
+         style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+                padding:10px 14px; font-size:11px; color:var(--text-dim); max-height:120px;
+                overflow-y:auto; line-height:1.8;">
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes blink-cursor {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  #spinner { display:inline-block; animation: spin 1.5s linear infinite; }
+</style>
+
+<script>
+  const total      = {{ total }};
+  const delay      = {{ delay }};
+  const startedAt  = Date.now();
+  let   pollInterval;
+  let   logLines   = [];
+
+  function addLog(msg) {
+    logLines.push(msg);
+    if (logLines.length > 20) logLines.shift();
+    document.getElementById("log").innerHTML =
+      logLines.map(l => `<div>> ${l}</div>`).join("");
+    document.getElementById("log").scrollTop = 9999;
+    document.getElementById("log-wrap").style.display = "block";
+  }
+
+  function poll() {
+    fetch("/progress")
+      .then(r => r.json())
+      .then(data => {
+        const done     = data.done  || 0;
+        const tot      = data.total || total;
+        const finished = data.finished;
+        const pct      = tot > 0 ? Math.round((done / tot) * 100) : 0;
+
+        document.getElementById("progress-bar").style.width = pct + "%";
+        document.getElementById("pct-text").textContent = pct + "%";
+
+        if (done === 0) {
+          document.getElementById("progress-text").textContent = "connecting to portal...";
+          document.getElementById("eta").textContent            = "calculating...";
+        } else {
+          document.getElementById("progress-text").textContent =
+            "uploaded " + done + " / " + tot + " students";
+
+          const elapsed   = (Date.now() - startedAt) / 1000;
+          const perItem   = elapsed / done;
+          const remaining = Math.ceil(perItem * (tot - done));
+          document.getElementById("eta").textContent =
+            remaining > 60
+              ? Math.ceil(remaining / 60) + " min remaining"
+              : remaining + "s remaining";
+
+          addLog("[ " + done + "/" + tot + " ] uploaded — " + (data.successful_count||0) + " ok, " + (data.failed_count||0) + " failed");
+        }
+
+        if (done > 0) {
+          document.getElementById("tally").style.display = "flex";
+          document.getElementById("tally-ok").textContent   = data.successful_count || 0;
+          document.getElementById("tally-fail").textContent = data.failed_count     || 0;
+        }
+
+        if (finished) {
+          clearInterval(pollInterval);
+          document.getElementById("spinner").style.animation = "none";
+          document.getElementById("spinner").textContent = "✓";
+          document.getElementById("spinner").style.color = "var(--green)";
+          document.getElementById("cursor").style.display = "none";
+          document.getElementById("progress-text").textContent = "upload complete — loading results...";
+          document.getElementById("progress-bar").style.width  = "100%";
+          document.getElementById("eta").textContent           = "done";
+          addLog("upload complete → redirecting...");
+          setTimeout(() => { window.location.href = "/results"; }, 800);
+        }
+
+        if (data.error) {
+          clearInterval(pollInterval);
+          document.getElementById("progress-text").style.color = "var(--red)";
+          document.getElementById("progress-text").textContent = "error: " + data.error;
+          document.getElementById("progress-sub").textContent  = "go back and try again";
+          addLog("ERROR: " + data.error);
+        }
+      })
+      .catch(() => { /* keep polling on network hiccup */ });
+  }
+
+  pollInterval = setInterval(poll, 2000);
+  poll();
+</script>
+
+{% endblock %}

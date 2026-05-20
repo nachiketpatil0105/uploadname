@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% set step = 2 %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title"><span class="card-title-prefix">02.</span> upload_csv</div>
+      <div class="card-sub">Upload a CSV file containing the student list</div>
+    </div>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom:18px;">
+    <i class="alert-icon">ℹ</i>
+    <div>
+      <strong>required columns</strong> (in any order):<br>
+      <code>name, father, mother, gender, dob, address, pincode, mobile</code>
+      <br><br>
+      <strong>example row:</strong><br>
+      <code>Ravi Kumar, Suresh Kumar, Sunita Kumar, M, 2010-05-15, Village XYZ Nashik, 422001, 9876543210</code>
+      <br><br>
+      <span style="color:var(--amber);">▸</span> Gender must be <strong>M</strong> or <strong>F</strong><br>
+      <span style="color:var(--amber);">▸</span> Date of Birth must be <strong>YYYY-MM-DD</strong> format
+      <br><br>
+      <a href="/sample" class="btn btn-outline btn-sm" style="margin-top:4px;">
+        ↓ download sample CSV
+      </a>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error">
+    <i class="alert-icon">✗</i>
+    <div>{{ error }}</div>
+  </div>
+  {% endif %}
+
+  <div class="section-label">select file</div>
+
+  <form method="POST" action="/upload" enctype="multipart/form-data" id="upload-form">
+    <div class="form-group">
+      <label>csv_file</label>
+      <input type="file" name="csv_file" accept=".csv" id="csv-file-input"
+             style="padding:9px 12px; border: 1px solid var(--border-hi); border-radius: var(--radius);
+                    width:100%; font-family: var(--font); font-size:12px;
+                    background: var(--bg); color: var(--text); cursor: pointer;"
+             required />
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn">
+      <span>▶</span> upload &amp; preview →
+    </button>
+  </form>
+</div>
+
+<script>
+  document.getElementById("upload-form").addEventListener("submit", function() {
+    const btn    = document.getElementById("upload-btn");
+    btn.disabled = true;
+    btn.innerHTML = "<span>⟳</span> reading file...";
+  });
+</script>
+
+{% endblock %}

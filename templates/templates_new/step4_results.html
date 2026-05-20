@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% set step = 5 %}
+
+{% block content %}
+
+{% set success_count = successful | length %}
+{% set fail_count    = failed    | length %}
+
+<!-- RESULT BANNER -->
+{% if fail_count == 0 %}
+<div class="alert alert-success">
+  <i class="alert-icon">✓</i>
+  <div>
+    <strong>all {{ success_count }} students added successfully</strong><br>
+    upload complete
+  </div>
+</div>
+{% elif success_count == 0 %}
+<div class="alert alert-error">
+  <i class="alert-icon">✗</i>
+  <div>
+    <strong>upload failed — no students were added</strong><br>
+    check errors below — token may have expired
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warn">
+  <i class="alert-icon">⚠</i>
+  <div>
+    <strong>partial success:</strong> {{ success_count }} added, {{ fail_count }} failed<br>
+    review failed entries below
+  </div>
+</div>
+{% endif %}
+
+<!-- SUMMARY STATS -->
+<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+  {% if success_count > 0 %}
+  <div style="background:var(--green-bg); border:1px solid var(--green-border); border-radius:var(--radius); padding:10px 22px; text-align:center; min-width:90px;">
+    <div style="font-size:22px; font-weight:700; color:var(--green);">{{ success_count }}</div>
+    <div style="font-size:10px; color:var(--green); letter-spacing:0.08em; text-transform:uppercase;">added</div>
+  </div>
+  {% endif %}
+  {% if fail_count > 0 %}
+  <div style="background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--radius); padding:10px 22px; text-align:center; min-width:90px;">
+    <div style="font-size:22px; font-weight:700; color:var(--red);">{{ fail_count }}</div>
+    <div style="font-size:10px; color:var(--red); letter-spacing:0.08em; text-transform:uppercase;">failed</div>
+  </div>
+  {% endif %}
+</div>
+
+
+<!-- SUCCESSFUL TABLE -->
+{% if successful %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title" style="color:var(--green);">
+        <span class="card-title-prefix" style="color:var(--green);">✓</span> added ({{ success_count }})
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>name</th><th>father</th><th>mother</th>
+          <th>gender</th><th>dob</th><th>address</th>
+          <th>pincode</th><th>mobile</th><th>weight_g</th><th>status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in successful %}
+        <tr>
+          <td class="row-idx">{{ loop.index }}</td>
+          <td><strong>{{ s.name }}</strong></td>
+          <td>{{ s.father }}</td>
+          <td>{{ s.mother }}</td>
+          <td><span class="badge badge-ok">{{ s.gender }}</span></td>
+          <td>{{ s.dob }}</td>
+          <td>{{ s.address }}</td>
+          <td>{{ s.pincode }}</td>
+          <td>{{ s.mobile }}</td>
+          <td>{{ s.birth_weight if s.birth_weight else "—" }}</td>
+          <td><span class="badge badge-ok">✓ {{ s.message }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- FAILED TABLE -->
+{% if failed %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title" style="color:var(--red);">
+        <span class="card-title-prefix" style="color:var(--red);">✗</span> failed ({{ fail_count }})
+      </div>
+      <div class="card-sub">common reasons: token expired, duplicate record, or missing data</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>name</th><th>father</th><th>mother</th>
+          <th>gender</th><th>dob</th><th>address</th>
+          <th>pincode</th><th>mobile</th><th>weight_g</th><th>reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in failed %}
+        <tr class="problem">
+          <td class="row-idx">{{ loop.index }}</td>
+          <td><strong>{{ f.name }}</strong></td>
+          <td>{{ f.father }}</td>
+          <td>{{ f.mother }}</td>
+          <td><span class="badge badge-ok">{{ f.gender }}</span></td>
+          <td>{{ f.dob }}</td>
+          <td>{{ f.address }}</td>
+          <td>{{ f.pincode }}</td>
+          <td>{{ f.mobile }}</td>
+          <td>{{ f.birth_weight if f.birth_weight else "—" }}</td>
+          <td><span class="badge badge-fail">{{ f.message }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ACTIONS -->
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;">
+  <a href="/new-upload" class="btn btn-primary">↺ start new upload</a>
+  <a href="/download-results" class="btn btn-outline">↓ download results CSV</a>
+  {% if failed %}
+  <a href="/upload" class="btn btn-outline">↑ retry with fixed CSV</a>
+  {% endif %}
+</div>
+
+{% endblock %}

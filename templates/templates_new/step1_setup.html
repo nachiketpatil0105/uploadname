@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% set step = 1 %}
+
+{% block content %}
+
+{% if errors %}
+<div class="alert alert-error">
+  <i class="alert-icon">✗</i>
+  <div>
+    <strong>validation_error:</strong>
+    <ul style="margin-top:6px; padding-left:16px;">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── SECTION A: Verify Team ── -->
+<div class="card" id="section-verify">
+  <div class="card-header">
+    <div>
+      <div class="card-title"><span class="card-title-prefix">01.</span> verify_team</div>
+      <div class="card-sub">Enter your Team ID and Login ID to authenticate</div>
+    </div>
+  </div>
+
+  <div class="section-label">credentials</div>
+
+  <div id="verify-error" class="alert alert-error" style="display:none; margin-bottom:14px;"></div>
+
+  <div class="form-group">
+    <label>team_id</label>
+    <input type="text" id="team_id_input" placeholder="e.g. MHT-127xxxx" autocomplete="off" />
+  </div>
+
+  <div class="form-group">
+    <label>login_id <span class="hint">— numeric portal login ID</span></label>
+    <input type="password" id="login_id_input" placeholder="enter login ID" />
+  </div>
+
+  <button type="button" class="btn btn-primary" id="verify-btn" onclick="verifyTeam()">
+    <span>▶</span> verify →
+  </button>
+</div>
+
+
+<!-- ── SECTION B: Token + Institution ── -->
+<div id="section-main" style="display:none">
+
+  <div class="alert alert-success" id="verify-success-msg" style="margin-bottom:14px;"></div>
+
+  <form method="POST" action="/start" id="start-form">
+    <input type="hidden" name="team_id"          id="hidden_team_id" />
+    <input type="hidden" name="login_id"         id="hidden_login_id" />
+    <input type="hidden" name="institution_name" id="hidden_inst_name" />
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title"><span class="card-title-prefix">02.</span> connect_portal</div>
+          <div class="card-sub">Paste your access token and select institution</div>
+        </div>
+      </div>
+
+      <div class="alert alert-info" style="margin-bottom:18px;">
+        <i class="alert-icon">ℹ</i>
+        <div>
+          <strong>how to get your access token:</strong>
+          <ol style="margin-top:6px; padding-left:18px; line-height:2;">
+            <li>Log in to R### portal → go to <strong>Dashboard</strong></li>
+            <li>Click the <strong>3 dots</strong> (top right) → <strong>More Tools</strong> → <strong>Developer Tools</strong></li>
+            <li><strong>Refresh</strong> the page</li>
+            <li>Go to <strong>Network</strong> tab → click <strong>Fetch/XHR</strong></li>
+            <li>Click <strong>GetDashboard</strong> → <strong>Headers</strong> → find <strong>Cookie</strong></li>
+            <li>Copy everything after <code>accessToken=</code></li>
+          </ol>
+          <a href="https://docs.google.com/document/d/1BYxaMSRWsFf-NC0U78fVHSEwBYE6R1yXlpGjr12hMY4/edit?usp=sharing"
+             target="_blank"
+             style="display:inline-block; margin-top:10px; color:var(--cyan); font-weight:600; font-size:11px;">
+            ↗ view step-by-step guide with screenshots
+          </a>
+        </div>
+      </div>
+
+      <div class="section-label">portal credentials</div>
+
+      <div class="form-group">
+        <label>access_token <span class="hint">— everything after accessToken= in Cookie header</span></label>
+        <input type="password" name="token" id="token_input"
+               placeholder="paste access token here" required />
+      </div>
+
+      <div class="section-label" style="margin-top:20px;">institution</div>
+
+      <div class="form-group">
+        <label>institution_type</label>
+        <select name="institution_type" id="inst_type" onchange="updateInstitutions()">
+          <option value="1">AWC (Anganwadi Centre)</option>
+          <option value="2">School</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>institution_name</label>
+        <input type="text" id="inst_search" placeholder="search e.g. Lasur"
+               oninput="filterInstitutions()" autocomplete="off"
+               style="margin-bottom:6px;" />
+        <select name="institution_code" id="inst_code" size="6"
+                onchange="onInstitutionSelect()">
+          <option value="">-- verify team first --</option>
+        </select>
+        <div id="inst_count" style="font-size:11px; color:var(--text-faint); margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-success" id="connect-btn">
+      <span>✓</span> connect &amp; proceed →
+    </button>
+  </form>
+</div>
+
+
+<script>
+  let awcList    = [];
+  let schoolList = [];
+
+  function updateInstitutions() {
+    document.getElementById("inst_search").value = "";
+    filterInstitutions();
+  }
+
+  function filterInstitutions() {
+    const query  = document.getElementById("inst_search").value.trim().toLowerCase();
+    const type   = document.getElementById("inst_type").value;
+    const list   = type === "2" ? schoolList : awcList;
+    const select = document.getElementById("inst_code");
+    const count  = document.getElementById("inst_count");
+
+    const filtered = query
+      ? list.filter(item => item.name.toLowerCase().includes(query))
+      : list;
+
+    select.innerHTML = "";
+    if (filtered.length === 0) {
+      select.innerHTML = "<option value=''>-- no results --</option>";
+      count.textContent = "0 results";
+      document.getElementById("hidden_inst_name").value = "";
+      return;
+    }
+
+    filtered.forEach(item => {
+      const opt       = document.createElement("option");
+      opt.value       = item.code;
+      opt.textContent = item.name;
+      select.appendChild(opt);
+    });
+
+    select.selectedIndex = 0;
+    document.getElementById("hidden_inst_name").value = filtered[0].name;
+    count.textContent = filtered.length + " result" + (filtered.length > 1 ? "s" : "");
+  }
+
+  function onInstitutionSelect() {
+    const select = document.getElementById("inst_code");
+    const opt    = select.options[select.selectedIndex];
+    document.getElementById("hidden_inst_name").value = opt ? opt.textContent : "";
+  }
+
+  async function verifyTeam() {
+    const team_id  = document.getElementById("team_id_input").value.trim();
+    const login_id = document.getElementById("login_id_input").value.trim();
+
+    const errDiv = document.getElementById("verify-error");
+    errDiv.style.display = "none";
+    errDiv.textContent   = "";
+
+    if (!team_id || !login_id) {
+      errDiv.innerHTML     = "<i class='alert-icon'>✗</i> enter both Team ID and Login ID";
+      errDiv.style.display = "flex";
+      return;
+    }
+
+    const btn    = document.getElementById("verify-btn");
+    btn.disabled = true;
+    btn.innerHTML = "<span>⟳</span> verifying...";
+
+    try {
+      const res  = await fetch("/verify-team", {
+        method:  "POST",
+        headers: {"Content-Type": "application/json"},
+        body:    JSON.stringify({team_id, login_id})
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        errDiv.innerHTML     = "<i class='alert-icon'>✗</i> " + data.message;
+        errDiv.style.display = "flex";
+        btn.disabled         = false;
+        btn.innerHTML        = "<span>▶</span> verify →";
+        return;
+      }
+
+      document.getElementById("section-verify").style.display = "none";
+      document.getElementById("section-main").style.display   = "block";
+      document.getElementById("verify-success-msg").innerHTML =
+        "<i class='alert-icon'>✓</i> team verified: <strong>" + team_id + "</strong> — enter token and select institution";
+
+      document.getElementById("hidden_team_id").value  = team_id;
+      document.getElementById("hidden_login_id").value = login_id;
+
+      awcList    = data.awc_list;
+      schoolList = data.school_list;
+      filterInstitutions();
+
+    } catch (err) {
+      errDiv.innerHTML     = "<i class='alert-icon'>✗</i> could not reach server — try again";
+      errDiv.style.display = "flex";
+      btn.disabled         = false;
+      btn.innerHTML        = "<span>▶</span> verify →";
+    }
+  }
+
+  document.getElementById("start-form").addEventListener("submit", function() {
+    const btn    = document.getElementById("connect-btn");
+    btn.disabled = true;
+    btn.innerHTML = "<span>⟳</span> connecting...";
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set step = 4 %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title"><span class="card-title-prefix">03.</span> confirm_upload</div>
+      <div class="card-sub">about to add <strong style="color:var(--amber);">{{ total }} student(s)</strong> to R### portal</div>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error">
+    <i class="alert-icon">✗</i>
+    <div>{{ error }}</div>
+  </div>
+  {% endif %}
+
+  <!-- INSTITUTION INFO -->
+  <div class="alert alert-info" style="margin-bottom:14px;">
+    <i class="alert-icon">→</i>
+    <div>
+      uploading to: <strong>{{ institution_name if institution_name else "Selected Institution" }}</strong>
+      <span style="margin-left:8px;" class="badge badge-ok">{{ institution_label }}</span>
+    </div>
+  </div>
+
+  <div class="alert alert-warn">
+    <i class="alert-icon">⚠</i>
+    <div>
+      <strong>this action cannot be undone</strong><br>
+      once you click "add all students", the upload begins. verify the institution above is correct.
+    </div>
+  </div>
+
+  <div class="section-label">final student list</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>name</th><th>father</th><th>mother</th>
+          <th>gender</th><th>dob</th><th>address</th>
+          <th>pincode</th><th>mobile</th><th>weight_g</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td class="row-idx">{{ loop.index }}</td>
+          <td><strong>{{ s.name }}</strong></td>
+          <td>{{ s.father }}</td>
+          <td>{{ s.mother }}</td>
+          <td><span class="badge badge-ok">{{ s.gender }}</span></td>
+          <td>{{ s.dob }}</td>
+          <td>{{ s.address }}</td>
+          <td>{{ s.pincode }}</td>
+          <td>{{ s.mobile }}</td>
+          <td>{{ s.birth_weight if s.birth_weight else "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:22px; display:flex; gap:10px; flex-wrap:wrap;">
+    <form method="POST" action="/run" id="upload-form">
+      <button type="submit" class="btn btn-success" id="upload-btn">
+        <span>🚀</span> add all {{ total }} students to portal
+      </button>
+    </form>
+    <a href="/upload" class="btn btn-outline">← start over</a>
+  </div>
+</div>
+
+<script>
+  document.getElementById("upload-form").addEventListener("submit", function() {
+    const btn    = document.getElementById("upload-btn");
+    btn.disabled = true;
+    btn.innerHTML = "<span>⟳</span> starting upload...";
+  });
+</script>
+
+{% endblock %}

@@ -8,13 +8,18 @@ Then open your browser at:
     http://localhost:5000
 """
 
+import os
 from flask import Flask
+from dotenv import load_dotenv
 from routes.session_routes import session_bp
 from routes.csv_routes import csv_bp
 from routes.upload_routes import upload_bp
 
+load_dotenv()
+
 app = Flask(__name__)
-app.secret_key = "rbsk-local-secret-2024"  # Used for flash messages
+# Load secret key from .env; fall back to a default only for development.
+app.secret_key = os.getenv("SECRET_KEY", "rbsk-local-dev-secret-change-me")
 
 # ---------------------------------------------------------------------------
 # Register route blueprints (each file handles one section of the app)

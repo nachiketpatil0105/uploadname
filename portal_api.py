@@ -3,8 +3,8 @@ portal_api.py — All communication with the RBSK portal API.
 
 This module handles:
   - Creating an authenticated HTTP session
-  - Setting the institution context (required before uploading)
-  - Uploading a single student record
+  - Verifying the access token
+  - Uploading a single student record (with 1 automatic retry on network error)
 
 All other files should import from here instead of making
 their own requests.post() calls.
@@ -85,6 +85,7 @@ def upload_student(session: requests.Session, student: dict, institution_type: i
                    institution_code: int, health_block_code: int, created_by: int) -> dict:
     """
     Upload a single student record to the portal.
+    Retries once on transient network errors before giving up.
 
     Parameters:
         session           : Authenticated requests.Session
@@ -116,13 +117,13 @@ def upload_student(session: requests.Session, student: dict, institution_type: i
         "student_address":     str(student["address"]).strip(),
         "pin_code":            int(student["pincode"]),
         "mobile":              str(student["mobile"]).strip(),
+        "birth_weight":        int(student.get("birth_weight", 0)),
 
         # Fixed defaults
         "whose_mobile":        1,
         "ip_address":          "NA",
         "birth_place":         0,
         "birth_place_name":    "",
-        "birth_weight":        0,
         "student_class":       0,
         "student_section":     0,
         "student_roll_number": "",
@@ -133,29 +134,33 @@ def upload_student(session: requests.Session, student: dict, institution_type: i
         "pen_id":              "",
     }
 
-    try:
-        response = session.post(SAVE_URL, json=payload, verify=False, timeout=15)
+    last_error = None
+    for attempt in range(2):  # 1 retry on transient network error
+        try:
+            response = session.post(SAVE_URL, json=payload, verify=False, timeout=15)
 
-        if response.status_code == 401:
-            return {"success": False, "message": "Token expired. Please refresh."}
-        if response.status_code != 200:
-            return {"success": False, "message": f"HTTP {response.status_code}: {response.text}"}
+            if response.status_code == 401:
+                return {"success": False, "message": "Token expired. Please refresh."}
+            if response.status_code != 200:
+                return {"success": False, "message": f"HTTP {response.status_code}: {response.text}"}
 
-        result = {k.lower(): v for k, v in response.json().items()}
+            result = {k.lower(): v for k, v in response.json().items()}
 
-        # Note: 'succecced' is a typo in the portal's own API response
-        if result.get("succecced") is True:
-            return {"success": True, "message": "Added successfully"}
-        else:
-            msg = result.get("message", "Server rejected the record.")
-            return {"success": False, "message": msg}
+            # Note: 'succecced' is a typo in the portal's own API response
+            if result.get("succecced") is True:
+                return {"success": True, "message": "Added successfully"}
+            else:
+                msg = result.get("message", "Server rejected the record.")
+                return {"success": False, "message": msg}
 
-    except requests.RequestException as e:
-        return {"success": False, "message": f"Network error: {e}"}
-    except ValueError:
-        return {"success": False, "message": "Could not read server response."}
+        except requests.ConnectionError as e:
+            last_error = e
+            if attempt == 0:
+                time.sleep(2)  # wait before retry
+            continue
+        except requests.RequestException as e:
+            return {"success": False, "message": f"Network error: {e}"}
+        except ValueError:
+            return {"success": False, "message": "Could not read server response."}
 
-
-# upload_all_students has been removed from this file.
-# The upload loop now lives in routes/upload_routes.py (_do_upload function)
-# where it can update live progress via job_store between each student.
+    return {"success": False, "message": f"Network error after retry: {last_error}"}

@@ -6,6 +6,8 @@ Handles:
   POST /upload        → Receive CSV file, show preview
   POST /clean         → Run the cleaner, show results
   POST /confirm-clean → Store cleaned data, go to Step 3
+  GET  /sample        → Download the sample CSV file
+  GET  /download-problems → Download problem rows as CSV
 
 NOTE ON STORAGE:
   CSV row data is stored in job_store (server-side memory), NOT in the Flask
@@ -16,7 +18,7 @@ NOTE ON STORAGE:
 import csv
 import io
 from flask import (Blueprint, render_template, request,
-                   session, redirect, url_for, make_response)
+                   session, redirect, url_for, send_file, Response)
 from csv_cleaner import check_and_clean, check_columns
 from config import REQUIRED_CSV_COLUMNS
 import job_store
@@ -111,12 +113,19 @@ def clean_csv():
 
     result = check_and_clean(job["raw_rows"])
 
+    # Store the cleaned results so /confirm-clean can read them directly
+    # (avoids re-running check_and_clean a second time with possible ordering differences)
+    job_store.set_cleaned_rows(job_id, result["cleaned"])
+    job_store.set_needs_weight_rows(job_id, result["needs_weight"])
+
     return render_template("step2_clean.html",
                            cleaned=result["cleaned"],
+                           needs_weight=result["needs_weight"],
                            problems=result["problems"],
                            ready=result["ready"],
                            total_raw=len(job["raw_rows"]),
                            total_clean=len(result["cleaned"]),
+                           total_needs_weight=len(result["needs_weight"]),
                            total_problems=len(result["problems"]))
 
 
@@ -124,7 +133,43 @@ def clean_csv():
 def confirm_clean():
     """
     Step 2d: User confirms they want to proceed with the cleaned rows.
-    Save cleaned rows to job_store and move to Step 3 (upload).
+    Reads already-cleaned rows from job_store, attaches birth weights for
+    under-1 children, then moves to Step 3 (upload confirmation).
+    """
+    guard = _require_session()
+    if guard: return guard
+
+    job_id = session.get("job_id")
+    job    = job_store.get_job(job_id) if job_id else None
+    if not job or not job["raw_rows"]:
+        return redirect(url_for("csv_bp.upload_csv"))
+
+    # Read the already-cleaned rows stored during /clean — do NOT re-run
+    # check_and_clean, because that could produce rows in a different order
+    # and misalign the weight_N form inputs with the wrong children.
+    needs_weight = job.get("needs_weight_rows", [])
+    for i, row in enumerate(needs_weight):
+        row["birth_weight"] = int(request.form.get(f"weight_{i}", 0) or 0)
+
+    job_store.set_needs_weight_rows(job_id, needs_weight)
+
+    return redirect(url_for("upload_bp.confirm_upload"))
+
+
+@csv_bp.route("/sample")
+def download_sample():
+    """Serve the sample CSV file so new users can see the required format."""
+    return send_file("sample_students.csv",
+                     mimetype="text/csv",
+                     as_attachment=True,
+                     download_name="sample_students.csv")
+
+
+@csv_bp.route("/download-problems")
+def download_problems():
+    """
+    Download the problem rows from the last clean run as a CSV.
+    Lets users fix errors in their spreadsheet without manually hunting for rows.
     """
     guard = _require_session()
     if guard: return guard
@@ -135,6 +180,18 @@ def confirm_clean():
         return redirect(url_for("csv_bp.upload_csv"))
 
     result = check_and_clean(job["raw_rows"])
-    job_store.set_cleaned_rows(job_id, result["cleaned"])
+    problems = result["problems"]
 
-    return redirect(url_for("upload_bp.confirm_upload"))
+    # Build a CSV with row number, name, and errors
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["CSV Row", "Student Name", "Errors"])
+    for p in problems:
+        writer.writerow([p["row"], p["name"], "; ".join(p["errors"])])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=problems.csv"}
+    )

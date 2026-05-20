@@ -22,6 +22,11 @@ TEAM_CONFIG = {
         "health_block_code": 148,
         "suffix":            "d",
     },
+    "MHT-1270375": {
+        "login_id_hash":     hashlib.sha256(os.getenv("SS_LOGIN_ID", "").encode()).hexdigest(),
+        "health_block_code": 148,
+        "suffix":            "s",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -51,11 +56,18 @@ INSTITUTION_TYPE_SCHOOL = 2   # School
 # ---------------------------------------------------------------------------
 # Paths to institution list CSV files
 # ---------------------------------------------------------------------------
-AWC_CSV_PATH_K   = "data/awc_k.csv"
-SCHOOL_CSV_PATH_K = "data/school_k.csv"
+# Instead of AWC_CSV_PATH_K, AWC_CSV_PATH_D separately — use one dict
+AWC_CSV_PATHS = {
+    "k": "data/awc_k.csv",
+    "d": "data/awc_d.csv",
+    "s": "data/awc_s.csv",
+}
 
-AWC_CSV_PATH_D   = "data/awc_d.csv"
-SCHOOL_CSV_PATH_D = "data/school_d.csv"
+SCHOOL_CSV_PATHS = {
+    "k": "data/school_k.csv",
+    "d": "data/school_d.csv",
+    "s": "data/school_s.csv",
+}
 
 
 # ---------------------------------------------------------------------------

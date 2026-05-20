@@ -12,7 +12,8 @@ Call check_and_clean() from your route handler.
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 from config import REQUIRED_CSV_COLUMNS
 
 
@@ -22,9 +23,10 @@ def check_and_clean(rows: list[dict]) -> dict:
 
     Returns a dict:
     {
-        "cleaned":  [ ... list of cleaned rows ... ],
-        "problems": [ ... list of problem descriptions ... ],
-        "ready":    True/False  (True if no blocking errors)
+        "cleaned":      [ ... list of cleaned rows ready to upload ... ],
+        "needs_weight": [ ... rows for children under 1 year ... ],
+        "problems":     [ ... list of problem descriptions ... ],
+        "ready":        True/False  (True if no blocking errors)
     }
     """
     cleaned = []
@@ -47,12 +49,16 @@ def check_and_clean(rows: list[dict]) -> dict:
             row["gender"] = gender
 
         # --- Validate date of birth format ---
-        dob = str(row.get("dob", "")).strip()
+        dob_str = str(row.get("dob", "")).strip()
+        parsed_dob = None
         try:
-            datetime.strptime(dob, "%Y-%m-%d")
-            row["dob"] = dob
+            parsed_dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
+            if parsed_dob > date.today():
+                row_errors.append(f"'dob' is in the future: '{dob_str}'")
+            else:
+                row["dob"] = dob_str
         except ValueError:
-            row_errors.append(f"'dob' must be YYYY-MM-DD format, got: '{dob}'")
+            row_errors.append(f"'dob' must be YYYY-MM-DD format, got: '{dob_str}'")
 
         # --- Validate pincode is numeric ---
         pincode = str(row.get("pincode", "")).strip().split(".")[0]
@@ -74,17 +80,25 @@ def check_and_clean(rows: list[dict]) -> dict:
 
         if row_errors:
             problems.append({
-                "row": i,
-                "name": str(row.get("name", "Unknown")).strip(),
+                "row":    i,
+                "name":   str(row.get("name", "Unknown")).strip(),
                 "errors": row_errors
             })
         else:
+            # Determine if child is under 1 year (needs birth weight).
+            # parsed_dob is guaranteed to be a date object here (no dob error).
+            age = relativedelta(date.today(), parsed_dob)
+            if age.years < 1:
+                cleaned_row["needs_weight"] = True
+            else:
+                cleaned_row["needs_weight"] = False
             cleaned.append(cleaned_row)
 
     return {
-        "cleaned":  cleaned,
-        "problems": problems,
-        "ready":    len(problems) == 0
+        "cleaned":      [r for r in cleaned if not r.get("needs_weight")],
+        "needs_weight": [r for r in cleaned if r.get("needs_weight")],
+        "problems":     problems,
+        "ready":        len(problems) == 0
     }
 
 

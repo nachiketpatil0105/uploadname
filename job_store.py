@@ -12,14 +12,13 @@ HOW IT WORKS:
   Every browser gets a unique job_id (stored in their cookie — just a short ID,
   not the actual data). The actual data lives in the JOBS dict below.
 
-WHAT IT STORES:
-  - raw_rows    : Original CSV rows before cleaning
-  - cleaned_rows: Cleaned rows ready to upload
-  - progress    : Upload progress so the browser can poll for live updates
-  - results     : Final upload results (successful + failed lists)
+CLEANUP:
+  Jobs older than 2 hours are purged automatically on each new_job() call
+  to prevent unbounded memory growth during long server sessions.
 """
 
 import uuid
+import time
 import threading
 
 # ── In-memory store — one entry per active browser session ──
@@ -29,17 +28,35 @@ JOBS: dict = {}
 # Lock to prevent race conditions when two threads write at the same time
 _lock = threading.Lock()
 
+# Jobs older than this many seconds will be purged
+_JOB_TTL_SECONDS = 7200  # 2 hours
+
+
+def _purge_old_jobs():
+    """Remove jobs that are older than _JOB_TTL_SECONDS. Called on new_job()."""
+    cutoff = time.time() - _JOB_TTL_SECONDS
+    to_delete = [jid for jid, j in JOBS.items() if j.get("created_at", 0) < cutoff]
+    for jid in to_delete:
+        JOBS.pop(jid, None)
+
 
 def new_job() -> str:
     """Create a new job entry and return its unique ID."""
     job_id = str(uuid.uuid4())
     with _lock:
+        _purge_old_jobs()
         JOBS[job_id] = {
-            "raw_rows":     [],
-            "cleaned_rows": [],
-            "config":       None,
-            "progress":     {"done": 0, "total": 0, "running": False, "finished": False},
-            "results":      {"successful": [], "failed": []},
+            "raw_rows":          [],
+            "cleaned_rows":      [],
+            "needs_weight_rows": [],
+            "config":            None,
+            "progress":          {
+                "done": 0, "total": 0,
+                "running": False, "finished": False,
+                "successful_count": 0, "failed_count": 0,
+            },
+            "results":           {"successful": [], "failed": []},
+            "created_at":        time.time(),
         }
     return job_id
 
@@ -61,12 +78,25 @@ def set_cleaned_rows(job_id: str, rows: list):
             JOBS[job_id]["cleaned_rows"] = rows
 
 
-def update_progress(job_id: str, done: int, total: int, finished: bool = False):
+def set_needs_weight_rows(job_id: str, rows: list):
+    with _lock:
+        if job_id in JOBS:
+            JOBS[job_id]["needs_weight_rows"] = rows
+
+
+def update_progress(job_id: str, done: int, total: int,
+                    finished: bool = False,
+                    successful_count: int = 0,
+                    failed_count: int = 0):
     with _lock:
         if job_id in JOBS:
             JOBS[job_id]["progress"] = {
-                "done": done, "total": total,
-                "running": not finished, "finished": finished
+                "done":             done,
+                "total":            total,
+                "running":          not finished,
+                "finished":         finished,
+                "successful_count": successful_count,
+                "failed_count":     failed_count,
             }
 
 
@@ -78,7 +108,7 @@ def set_results(job_id: str, successful: list, failed: list):
 
 def set_config(job_id: str, token: str, health_block_code: int,
                login_id: int, institution_type: int, institution_code: int,
-               team_id: str, suffix: str):
+               team_id: str, suffix: str, institution_name: str = ""):
     """
     Store the portal credentials and institution settings in the job.
     This avoids putting them in the Flask cookie, which has a 4KB limit
@@ -94,6 +124,7 @@ def set_config(job_id: str, token: str, health_block_code: int,
                 "institution_code":  institution_code,
                 "team_id":           team_id,
                 "suffix":            suffix,
+                "institution_name":  institution_name,
             }
 
 
