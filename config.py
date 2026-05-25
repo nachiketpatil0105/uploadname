@@ -27,6 +27,11 @@ TEAM_CONFIG = {
         "health_block_code": 148,
         "suffix":            "s",
     },
+    "MHT-1270367": {
+        "login_id_hash":     hashlib.sha256(os.getenv("GG_LOGIN_ID", "").encode()).hexdigest(),
+        "health_block_code": 148,
+        "suffix":            "g",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -61,12 +66,14 @@ AWC_CSV_PATHS = {
     "k": "data/awc_k.csv",
     "d": "data/awc_d.csv",
     "s": "data/awc_s.csv",
+    "g": "data/awc_g.csv",
 }
 
 SCHOOL_CSV_PATHS = {
     "k": "data/school_k.csv",
     "d": "data/school_d.csv",
     "s": "data/school_s.csv",
+    "g": "data/school_g.csv",
 }
 
 
